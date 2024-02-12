@@ -21,6 +21,7 @@ class GeneralFlow:
         self.MCrit = 1.0
         self.MCritRange = 0.0001
         self.solved = False
+        self.chokepoint = False
 
     def setIC(self, M1, vel, P01, P1, T01, T1, rho, visc, epsilon):
         # TODO: Update so that we have a changing viscosity
@@ -589,12 +590,14 @@ class GeneralFlow:
         dP_dx *= P
 
 
+        # if self.chokepoint == False and (M - (self.MCrit + 0.01)):
         self.dM2_dx = dM2_dx
         self.dV_dx = dV_dx
         self.da_dx = da_dx
         self.dT_dx = dT_dx
         self.drho_dx = drho_dx
         self.dP_dx = dP_dx
+        # self.chokepoint = True
 
         # Brings Derivatives Together and Returns Algorithm
         xdot = np.hstack((dM2_dx, dV_dx, da_dx, dT_dx, drho_dx, dP_dx))
@@ -611,7 +614,7 @@ class GeneralFlow:
                   t_eval=self.xspan, 
                   rtol=1e-10,
                   atol=1e-10,
-                  max_step=0.001)
+                  max_step=0.0001)
         
         if len(self.results.y) == 0:
             raise ValueError('Convergence Failed')
@@ -633,6 +636,8 @@ class GeneralFlow:
                    'rho': rho,
                    'P': P,
                    'reason': self.reason}
+        
+        self.chokepoint = False
         
         self.results = pd.DataFrame(dictOut)
         return self.results
