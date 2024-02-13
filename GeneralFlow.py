@@ -19,7 +19,7 @@ class GeneralFlow:
         self.gamma = gamma
         self.MW = MW
         self.MCrit = 1.0
-        self.MCritRange = 0.0001
+        self.MCritRange = 0.001
         self.solved = False
         self.chokepoint = False
 
@@ -60,10 +60,7 @@ class GeneralFlow:
         #                x0=0.0001)
         # This does not use the classic solver approach but is close enough
         # as numerically solving natural logs suck
-        if self.smooth == False:
-            f = fluids.friction_factor(Re = Re, eD=self.epsilon/D) / 4
-        else:
-            f = fluids.friction_factor(Re = Re) / 4
+        f = fluids.friction_factor(Re = Re, eD=self.epsilon/D) / 4.
         return f
 
     @staticmethod
@@ -477,6 +474,11 @@ class GeneralFlow:
         rho = x[4]
         P = x[5]
 
+        # TODO: Remove this correction
+        if t > 0.0 and M < 1.:
+            M = 1.005
+            M2 = M**2
+
         # TODO: Add support for finding current gamma
         gamma = self.gamma
 
@@ -502,8 +504,8 @@ class GeneralFlow:
         Cp = 1
 
         # Gets External Forces Term
-        # f = self.getf(rho, V, D)
-        f = 0.
+        f = self.getf(rho, V, D)
+        # f = 0.
         dX = 0.
         vgx = 0
         vg = 1.
@@ -598,6 +600,7 @@ class GeneralFlow:
         self.drho_dx = drho_dx
         self.dP_dx = dP_dx
         # self.chokepoint = True
+        print(M)
 
         # Brings Derivatives Together and Returns Algorithm
         xdot = np.hstack((dM2_dx, dV_dx, da_dx, dT_dx, drho_dx, dP_dx))
@@ -614,7 +617,7 @@ class GeneralFlow:
                   t_eval=self.xspan, 
                   rtol=1e-10,
                   atol=1e-10,
-                  max_step=0.0001)
+                  max_step=0.001)
         
         if len(self.results.y) == 0:
             raise ValueError('Convergence Failed')
