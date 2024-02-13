@@ -600,7 +600,7 @@ class GeneralFlow:
         self.drho_dx = drho_dx
         self.dP_dx = dP_dx
         # self.chokepoint = True
-        print(M)
+        # print(M)
 
         # Brings Derivatives Together and Returns Algorithm
         xdot = np.hstack((dM2_dx, dV_dx, da_dx, dT_dx, drho_dx, dP_dx))
