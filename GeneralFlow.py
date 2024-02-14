@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import scipy.integrate as spint
 import scipy.optimize as spy
+import numba as nb
 import fluids
 
 # TODO: You can implement TP CEA solver to get thermochemistry data for changing gamma
@@ -64,9 +65,18 @@ class GeneralFlow:
         return f
 
     @staticmethod
+    @nb.njit
     def findInfCoeffMach(gamma, M):
         '''
         Returns Influence Coefficients for Mach Number
+
+        Return Array Index Meanings:
+        - dMdA: 0
+        - dMdH0: 1
+        - dMdf: 2
+        - dMdmdot: 3
+        - dMdM2: 4
+        - dMdgamma: 5
         '''
         # Influence Coefficient for Area Change
         dMdA = (-2 * (1 + ((gamma - 1) / 2) * M**2)) / \
@@ -93,18 +103,27 @@ class GeneralFlow:
         # Influence Coefficient for Gamma Change
         dMdgamma = -1.
 
-        dM = {'dMdA': dMdA,
-              'dMdH0': dMdH0,
-              'dMdf': dMdf,
-              'dMdmdot': dMdmdot,
-              'dMdMW': dMdMW,
-              'dMdgamma': dMdgamma}
+        dM = np.array([dMdA,
+                       dMdH0,
+                       dMdf,
+                       dMdmdot,
+                       dMdMW,
+                       dMdgamma])
         return dM
 
     @staticmethod
+    @nb.njit
     def findInfCoeffVel(gamma, M):
         '''
         Returns Influence Coefficients for Velocity
+
+        Return Array Index Meanings:
+        - dVdA: 0
+        - dVdH0: 1
+        - dVdf: 2
+        - dVdmdot: 3
+        - dVdM2: 4
+        - dVdgamma: 5
         '''
         # Influence Coefficient for Area Change
         dVdA = -1 / (1 - M**2)
@@ -124,18 +143,27 @@ class GeneralFlow:
         # Influence Coefficient for Gamma Change
         dVdgamma = 0
 
-        dV = {'dVdA': dVdA,
-              'dVdH0': dVdH0,
-              'dVdf': dVdf,
-              'dVdmdot': dVdmdot,
-              'dVdMW': dVdMW,
-              'dVdgamma': dVdgamma}
+        dV = np.array([dVdA,
+                       dVdH0,
+                       dVdf,
+                       dVdmdot,
+                       dVdMW,
+                       dVdgamma])
         return dV
     
     @staticmethod
+    @nb.njit
     def findInfCoeffa(gamma, M):
         '''
         Returns Influence Coefficients for Change in Speed of Sound
+
+        Return Array Index Meanings:
+        - dadA: 0
+        - dadH0: 1
+        - dadf: 2
+        - dadmdot: 3
+        - dadM2: 4
+        - dadgamma: 5
         '''
         # Influence Coefficient for Area Change
         dadANum = ((gamma - 1) / 2) * M**2
@@ -165,18 +193,27 @@ class GeneralFlow:
         # Influence Coefficient for Gamma Change
         dadgamma = 1 / 2
 
-        da = {'dadA': dadA,
-              'dadH0': dadH0,
-              'dadf': dadf,
-              'dadmdot': dadmdot,
-              'dadMW': dadMW,
-              'dadgamma': dadgamma}
+        da = np.array([dadA,
+                       dadH0,
+                       dadf,
+                       dadmdot,
+                       dadMW,
+                       dadgamma])
         return da
     
     @staticmethod
+    @nb.njit
     def findInfCoeffT(gamma, M):
         '''
         Returns Influence Coefficients for Change in Static Temperature
+
+        Return Array Index Meanings:
+        - dTdA: 0
+        - dTdH0: 1
+        - dTdf: 2
+        - dTdmdot: 3
+        - dTdM2: 4
+        - dTdgamma: 5
         '''
         # Influence Coefficient for Area Change
         dTdANum = (gamma - 1) * M**2
@@ -206,18 +243,27 @@ class GeneralFlow:
         # Influence Coefficient for Gamma Change
         dTdgamma = 0
 
-        dT = {'dTdA': dTdA,
-              'dTdH0': dTdH0,
-              'dTdf': dTdf,
-              'dTdmdot': dTdmdot,
-              'dTdMW': dTdMW,
-              'dTdgamma': dTdgamma}
+        dT = np.array([dTdA,
+                       dTdH0,
+                       dTdf,
+                       dTdmdot,
+                       dTdMW,
+                       dTdgamma])
         return dT
 
     @staticmethod
+    @nb.njit
     def findInfCoeffrho(gamma, M):
         '''
         Returns Influence Coefficients for Change in Density
+
+        Return Array Index Meanings:
+        - drhodA: 0
+        - drhodH0: 1
+        - drhodf: 2
+        - drhodmdot: 3
+        - drhodM2: 4
+        - drhodgamma: 5
         '''
         # Influence Coefficient for Area Change
         drhodA = M**2 / (1 - M**2)
@@ -237,18 +283,27 @@ class GeneralFlow:
         # Influence Coefficient for Gamma Change
         drhodgamma = 0
 
-        drho = {'drhodA': drhodA,
-                'drhodH0': drhodH0,
-                'drhodf': drhodf,
-                'drhodmdot': drhodmdot,
-                'drhodMW': drhodMW,
-                'drhodgamma': drhodgamma}
+        drho = np.array([drhodA,
+                         drhodH0,
+                         drhodf,
+                         drhodmdot,
+                         drhodMW,
+                         drhodgamma])
         return drho
     
     @staticmethod
+    @nb.njit
     def findInfCoeffP(gamma, M):
         '''
         Returns Influence Coefficients for Change in Pressure
+
+        Return Array Index Meanings:
+        - dPdA: 0
+        - dPdH0: 1
+        - dPdf: 2
+        - dPdmdot: 3
+        - dPdM2: 4
+        - dPdgamma: 5
         '''
         # Influence Coefficient for Area Change
         dPdA = gamma * M**2 / (1 - M**2)
@@ -272,18 +327,27 @@ class GeneralFlow:
         # Influence Coefficient for Gamma Change
         dPdgamma = 0.
 
-        dP = {'dPdA': dPdA,
-              'dPdH0': dPdH0,
-              'dPdf': dPdf,
-              'dPdmdot': dPdmdot,
-              'dPdMW': dPdMW,
-              'dPdgamma': dPdgamma}
+        dP = np.array([dPdA,
+                       dPdH0,
+                       dPdf,
+                       dPdmdot,
+                       dPdMW,
+                       dPdgamma])
         return dP
     
     @staticmethod
+    @nb.njit
     def findInfCoeffF(gamma, M):
         '''
-        Returns Influence CoefficientS for Change in ??????????????
+        Returns Influence CoefficientS for Change in Impulse Function
+
+        Return Array Index Meanings:
+        - dFdA: 0
+        - dFdH0: 1
+        - dFdf: 2
+        - dFdmdot: 3
+        - dFdM2: 4
+        - dFdgamma: 5
         '''
         # Influence Coefficient for Change in Area
         dFdA = 1 / (1 + gamma * M**2)
@@ -303,18 +367,27 @@ class GeneralFlow:
         # Influence Coefficient for Gamma Change
         dFdgamma = 0.
 
-        dF = {'dFdA': dFdA,
-              'dFdH0': dFdH0,
-              'dFdf': dFdf,
-              'dFdmdot': dFdmdot,
-              'dFdMW': dFdMW,
-              'dFdgamma': dFdgamma}
+        dF = np.array([dFdA,
+                       dFdH0,
+                       dFdf,
+                       dFdmdot,
+                       dFdMW,
+                       dFdgamma])
         return dF
     
     @staticmethod
+    @nb.njit
     def findInfCoeffS(gamma, M):
         '''
         Returns Influence Coefficietns for Chance in Entropy
+
+        Return Array Index Meanings:
+        - dSdA: 0
+        - dSdH0: 1
+        - dSdf: 2
+        - dSdmdot: 3
+        - dSdM2: 4
+        - dSdgamma: 5
         '''
         # Influence Coefficient for Change in Area
         dSdA = 0.
@@ -334,14 +407,15 @@ class GeneralFlow:
         # Influence Coefficient for Gamma Change
         dSdgamma = 0.
 
-        dS = {'dSdA': dSdA,
-              'dSdH0': dSdH0,
-              'dSdf': dSdf,
-              'dSdmdot': dSdmdot,
-              'dSdMW': dSdMW,
-              'dSdgamma': dSdgamma}
+        dS = np.array([dSdA,
+                       dSdH0,
+                       dSdf,
+                       dSdmdot,
+                       dSdMW,
+                       dSdgamma])
         return dS
 
+    # TODO: Convert this to numba
     @staticmethod
     def findInfCoeffP0(gamma, M):
         '''
@@ -462,6 +536,7 @@ class GeneralFlow:
         # Sets Initial Conditions
         self.IC = np.array([M1**2, vel, a, T1, rho1, P1])
     
+    # @nb.jit(nopython=True)
     def xdotSolveBeta(self, t, x):
         # TODO: Add Support for Entropy and Impulse
         # Makes Variables easier to use
@@ -526,69 +601,69 @@ class GeneralFlow:
             return xdot
 
         # Calculates Derivative for Mach Number Squared
-        dM2_dx = dMInf['dMdA'] * dA_dx / area + \
-                 dMInf['dMdH0'] * dH0_dx / Cp / T + \
-                 dMInf['dMdf'] * f * 4. / D + \
-                 dMInf['dMdf'] * 2 * dX / gamma / P / area / M**2 + \
-                 dMInf['dMdf'] * -2 * vgx / vg / mdot * dmdot_dx + \
-                 dMInf['dMdmdot'] * dmdot_dx + \
-                 dMInf['dMdMW'] * dMW_dx + \
-                 dMInf['dMdgamma'] * dgamma_dx
+        dM2_dx = dMInf[0] * dA_dx / area + \
+                 dMInf[1] * dH0_dx / Cp / T + \
+                 dMInf[2] * f * 4. / D + \
+                 dMInf[2] * 2 * dX / gamma / P / area / M**2 + \
+                 dMInf[2] * -2 * vgx / vg / mdot * dmdot_dx + \
+                 dMInf[3] * dmdot_dx + \
+                 dMInf[4] * dMW_dx + \
+                 dMInf[5] * dgamma_dx
         dM2_dx *= M2
         
         # Calculates Derivative for Velocity
-        dV_dx = dVInf['dVdA'] * dA_dx / area + \
-                dVInf['dVdH0'] * dH0_dx / Cp / T + \
-                dVInf['dVdf'] * f * 4. / D + \
-                dVInf['dVdf'] * 2 * dX / gamma / P / area / M**2 + \
-                dVInf['dVdf'] * -2 * vgx / vg / mdot * dmdot_dx + \
-                dVInf['dVdmdot'] * dmdot_dx + \
-                dVInf['dVdMW'] * dMW_dx + \
-                dVInf['dVdgamma'] * dgamma_dx
+        dV_dx = dVInf[0] * dA_dx / area + \
+                dVInf[1] * dH0_dx / Cp / T + \
+                dVInf[2] * f * 4. / D + \
+                dVInf[2] * 2 * dX / gamma / P / area / M**2 + \
+                dVInf[2] * -2 * vgx / vg / mdot * dmdot_dx + \
+                dVInf[3] * dmdot_dx + \
+                dVInf[4] * dMW_dx + \
+                dVInf[5] * dgamma_dx
         dV_dx *= V
         
         # Calculates Derivative for Speed of Sound
-        da_dx = daInf['dadA'] * dA_dx / area + \
-                daInf['dadH0'] * dH0_dx / Cp / T + \
-                daInf['dadf'] * f * 4. / D + \
-                daInf['dadf'] * 2 * dX / gamma / P / area / M**2 + \
-                daInf['dadf'] * -2 * vgx / vg / mdot * dmdot_dx + \
-                daInf['dadmdot'] * dmdot_dx + \
-                daInf['dadMW'] * dMW_dx + \
-                daInf['dadgamma'] * dgamma_dx
+        da_dx = daInf[0] * dA_dx / area + \
+                daInf[1] * dH0_dx / Cp / T + \
+                daInf[2] * f * 4. / D + \
+                daInf[2] * 2 * dX / gamma / P / area / M**2 + \
+                daInf[2] * -2 * vgx / vg / mdot * dmdot_dx + \
+                daInf[3] * dmdot_dx + \
+                daInf[4] * dMW_dx + \
+                daInf[5] * dgamma_dx
         da_dx *= a
         
         # Calculates Derivative for Temperature
-        dT_dx = dTInf['dTdA'] * dA_dx / area + \
-                dTInf['dTdH0'] * dH0_dx / Cp / T + \
-                dTInf['dTdf'] * f * 4. / D + \
-                dTInf['dTdf'] * 2 * dX / gamma / P / area / M**2 + \
-                dTInf['dTdf'] * -2 * vgx / vg / mdot * dmdot_dx + \
-                dTInf['dTdmdot'] * dmdot_dx + \
-                dTInf['dTdMW'] * dMW_dx + \
-                dTInf['dTdgamma'] * dgamma_dx
+        dT_dx = dTInf[0] * dA_dx / area + \
+                dTInf[1] * dH0_dx / Cp / T + \
+                dTInf[2] * f * 4. / D + \
+                dTInf[2] * 2 * dX / gamma / P / area / M**2 + \
+                dTInf[2] * -2 * vgx / vg / mdot * dmdot_dx + \
+                dTInf[3] * dmdot_dx + \
+                dTInf[4] * dMW_dx + \
+                dTInf[5] * dgamma_dx
         dT_dx *= T
 
         # Calculates Derivative for Density
-        drho_dx = drhoInf['drhodA'] * dA_dx / area + \
-                  drhoInf['drhodH0'] * dH0_dx / Cp / T + \
-                  drhoInf['drhodf'] * f * 4. / D + \
-                  drhoInf['drhodf'] * 2 * dX / gamma / P / area / M**2 + \
-                  drhoInf['drhodf'] * -2 * vgx / vg / mdot * dmdot_dx + \
-                  drhoInf['drhodmdot'] * dmdot_dx + \
-                  drhoInf['drhodMW'] * dMW_dx + \
-                  drhoInf['drhodgamma'] * dgamma_dx
+        drho_dx = drhoInf[0] * dA_dx / area + \
+                  drhoInf[1] * dH0_dx / Cp / T + \
+                  drhoInf[2] * f * 4. / D + \
+                  drhoInf[2] * 2 * dX / gamma / P / area / M**2 + \
+                  drhoInf[2] * -2 * vgx / vg / mdot * dmdot_dx + \
+                  drhoInf[3] * dmdot_dx + \
+                  drhoInf[4] * dMW_dx + \
+                  drhoInf[5] * dgamma_dx
         drho_dx *= rho
 
         # Calculates Derivative for Pressure
-        dP_dx = dPInf['dPdA'] * dA_dx / area + \
-                dPInf['dPdH0'] * dH0_dx / Cp / T + \
-                dPInf['dPdf'] * f * 4. / D + \
-                dPInf['dPdf'] * 2 * dX / gamma / P / area / M**2 + \
-                dPInf['dPdf'] * -2 * vgx / vg / mdot * dmdot_dx + \
-                dPInf['dPdmdot'] * dmdot_dx + \
-                dPInf['dPdMW'] * dMW_dx + \
-                dPInf['dPdgamma'] * dgamma_dx
+        dP_dx = dPInf[0] * dA_dx / area + \
+                dPInf[1] * dH0_dx / Cp / T + \
+                dPInf[2] * f * 4. / D + \
+                dPInf[2] * 2 * dX / gamma / P / area / M**2 + \
+                dPInf[2] * -2 * vgx / vg / mdot * dmdot_dx + \
+                dPInf[3] * dmdot_dx + \
+                dPInf[4] * dMW_dx + \
+                dPInf[5] * dgamma_dx
         dP_dx *= P
 
 
@@ -683,5 +758,5 @@ class GeneralFlow:
 
 if __name__ == '__main__':
     results = GeneralFlow.findInfCoeffS(1.4, 2.)
-    for key, item in results.items():
-        print(f'{key}: {item:.3f}')
+    for i in results:
+        print(i)
