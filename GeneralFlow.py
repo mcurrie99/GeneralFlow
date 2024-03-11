@@ -508,12 +508,6 @@ class GeneralFlow:
                 dgamma_dx = (gammaCurr - self.gammaCEAPrev) / tDiff
                 dMW_dx = (MWCurr - self.MWCEAPrev) / tDiff
 
-                print(f'Current Gamma: {gammaCurr}')
-                print(f'Previous Gamma: {self.gammaCEAPrev}')
-                print(f'Difference in gamma: {gammaCurr - self.gammaCEAPrev}')
-                print(f'Current X: {t}')
-                print()
-
                 self.gammaCEAPrev = gammaCurr
                 self.MWCEAPrev = MWCurr
                 self.tCEAPrev = t
@@ -556,7 +550,6 @@ class GeneralFlow:
         # Grabs Derivative for gamma and MW and current Values
         if self.runCEA == True:
             dgamma_dx, dMW_dx, gamma = self.findThermoDervs(T, P, t)
-        print(f'Current Gamma: {gamma}')
 
         # Grabs Influence Coefficients
         dMInf = self.findInfCoeffMach(gamma, M)

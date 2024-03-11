@@ -10,8 +10,8 @@
 
 
  problem tp
-    p(bar) = 0.10655
-    t(k) = 1348.40980
+    p(bar) = 30.00000
+    t(k) = 2500.00000
     o/f = 2.50000
  react
     fuel=CH4(L) wt=100.00000
@@ -23,11 +23,11 @@
  OPTIONS: TP=T  HP=F  SP=F  TV=F  UV=F  SV=F  DETN=F  SHOCK=F  REFL=F  INCD=F
  RKT=F  FROZ=F  EQL=F  IONS=F  SIUNIT=T  DEBUGF=F  SHKDBG=F  DETDBG=F  TRNSPT=T
 
- T,K =  1348.4098
+ T,K =  2500.0000
 
  TRACE= 0.00E+00  S/R= 0.000000E+00  H/R= 0.000000E+00  U/R= 0.000000E+00
 
- P,BAR =     0.106550
+ P,BAR =    30.000000
 
     REACTANT          WT.FRAC   (ENERGY/R),K   TEMP,K  DENSITY
         EXPLODED FORMULA
@@ -105,7 +105,7 @@
   *O                   0.00000000E+00      0.62502344E-01      0.44644531E-01
 
  POINT ITN      T            C           H           O 
-   1   21    1348.410     -11.210     -10.878     -28.923
+   1   19    2500.000     -12.422      -9.122     -19.337
 
 
 
@@ -125,44 +125,47 @@
 
  THERMODYNAMIC PROPERTIES
 
- P, BAR           0.10655
- T, K             1348.41
- RHO, KG/CU M    1.7787-2
- H, KJ/KG        -6699.30
- U, KJ/KG        -7298.32
- G, KJ/KG        -25403.1
- S, KJ/(KG)(K)    13.8710
+ P, BAR            30.000
+ T, K             2500.00
+ RHO, KG/CU M    2.6970 0
+ H, KJ/KG        -3878.55
+ U, KJ/KG        -4990.92
+ G, KJ/KG        -36051.3
+ S, KJ/(KG)(K)    12.8691
 
- M, (1/n)          18.716
- (dLV/dLP)t      -1.00000
- (dLV/dLT)p        1.0000
- Cp, KJ/(KG)(K)    2.3704
- GAMMAs            1.2307
- SON VEL,M/SEC      858.6
+ M, (1/n)          18.687
+ (dLV/dLP)t      -1.00080
+ (dLV/dLT)p        1.0188
+ Cp, KJ/(KG)(K)    2.6879
+ GAMMAs            1.2063
+ SON VEL,M/SEC     1158.4
 
  TRANSPORT PROPERTIES (GASES ONLY)
    CONDUCTIVITY IN UNITS OF MILLIWATTS/(CM)(K)
 
- VISC,MILLIPOISE  0.64808
+ VISC,MILLIPOISE  0.95587
 
   WITH EQUILIBRIUM REACTIONS
 
- Cp, KJ/(KG)(K)    2.3704
- CONDUCTIVITY      3.5228
- PRANDTL NUMBER    0.4361
+ Cp, KJ/(KG)(K)    2.6879
+ CONDUCTIVITY      6.2693
+ PRANDTL NUMBER    0.4098
 
   WITH FROZEN REACTIONS
 
- Cp, KJ/(KG)(K)    2.1821
- CONDUCTIVITY      3.3692
- PRANDTL NUMBER    0.4197
+ Cp, KJ/(KG)(K)    2.4635
+ CONDUCTIVITY      5.1202
+ PRANDTL NUMBER    0.4599
 
  MOLE FRACTIONS
 
- *CO              0.20285
- *CO2             0.13049
- *H2              0.29491
- H2O              0.37176
+ *CO              0.25822
+ *CO2             0.07458
+ *H               0.00224
+ *H2              0.23809
+ H2O              0.42594
+ *O               0.00001
+ *OH              0.00092
 
   * THERMODYNAMIC PROPERTIES FITTED TO 20000.K
 
@@ -190,9 +193,9 @@
  C7H14,1-heptene C7H15,n-heptyl  C7H16,n-heptane C7H16,2-methylh C8H8,styrene   
  C8H10,ethylbenz C8H16,1-octene  C8H17,n-octyl   C8H18,n-octane  C8H18,isooctane
  C9H19,n-nonyl   C10H8,naphthale C10H21,n-decyl  C12H9,o-bipheny C12H10,biphenyl
- *H              HCO             HCCO            HO2             HCHO,formaldehy
- HCOOH           H2O2            (HCOOH)2        *O              *OH            
- *O2             O3              C(gr)           H2O(cr)         H2O(L)         
+ HCO             HCCO            HO2             HCHO,formaldehy HCOOH          
+ H2O2            (HCOOH)2        *O2             O3              C(gr)          
+ H2O(cr)         H2O(L)         
 
  NOTE. WEIGHT FRACTION OF FUEL IN TOTAL FUELS AND OF OXIDANT IN TOTAL OXIDANTS
 
