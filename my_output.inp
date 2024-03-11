@@ -1,0 +1,10 @@
+problem tp
+   p(bar) = 0.10655
+   t(k) = 1348.40980
+   o/f = 2.50000
+react  
+   fuel=CH4(L) wt=100.00000 
+   ox=O2(L) wt=100.00000 
+output trans
+   plot p t h mw cp gammas phi rho son cond pran
+end

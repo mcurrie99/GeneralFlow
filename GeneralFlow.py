@@ -3,11 +3,16 @@ import pandas as pd
 import scipy.integrate as spint
 import scipy.optimize as spy
 import numba as nb
+import CEA_Wrap as CEA
 import fluids
 
 # TODO: You can implement TP CEA solver to get thermochemistry data for changing gamma
 
 class GeneralFlow:
+    '''
+    This is a general Class for a working General Flow Simulation of Flow through a nozzle.
+    As this is early in development, working with the class to obtain the results will most likely be necessary.
+    '''
     def __init__(self, x_arr=[], D_arr=[], pointNum=1000, q=0., Cp=1005, gamma=1.4, MW=28.96):
         self.xStart = x_arr[0]
         self.xEnd = x_arr[-1]
@@ -23,13 +28,9 @@ class GeneralFlow:
         self.MCritRange = 0.001
         self.solved = False
         self.chokepoint = False
-
-    def setIC(self, M1, vel, P01, P1, T01, T1, rho, visc, epsilon):
-        # TODO: Update so that we have a changing viscosity
-        self.visc = visc
-        # TODO: Updated for option of changing epsilon
-        self.epsilon = epsilon
-        self.IC = np.array([M1, vel, P01, P1, T01, T1, rho])
+        self.tCEAPrev = None
+        self.maxStep = 0.001
+        self.runCEA = False
 
     def getD(self, t):
         index = np.searchsorted(self.x_arr, t)
@@ -63,6 +64,44 @@ class GeneralFlow:
         # as numerically solving natural logs suck
         f = fluids.friction_factor(Re = Re, eD=self.epsilon/D) / 4.
         return f
+
+    # Sets up CEA Calculations
+    def setCEAProp(self, ox:str, oxTemp:float, fu:str, fuTemp:float, OF:float):
+        '''
+        Sets up Oxidizer and Fuel Materials for CEA Simulations
+        Temperature is in units of Kelvin
+        '''
+        # Oxidizer Material for CEA Setup
+        self.Ox = CEA.Oxidizer(name=ox,
+                               temp=oxTemp)
+        
+        # Fuel Material for CEA Setup
+        self.Fu = CEA.Fuel(name=fu,
+                           temp=fuTemp)
+
+        # Class Setup of OF Ratio
+        self.OF = OF
+        self.runCEA = True
+
+    # Perfroms Chemical Analysis
+    def thermochem(self, temp, press):
+        '''
+        Returns the derivative of Molecular Weight and Ratio of Specific Heat
+        '''
+        pressBar = press / 100000.
+
+        problem = CEA.TPProblem(materials=[self.Ox, self.Fu],
+                                o_f=self.OF,
+                                temperature=temp,
+                                temperature_units='K',
+                                pressure=pressBar,
+                                pressure_units='bar')
+        
+        results = problem.run()
+
+        gamma = results.gamma
+        MW = results.mw
+        return gamma, MW
 
     @staticmethod
     @nb.njit
@@ -441,85 +480,45 @@ class GeneralFlow:
                'dP0df': dP0df,
                'dP0dmdot': dP0dmdot}
         return dP0
+    
+    def findThermoDervs(self, T, P, t):
+        '''
+        Returns dgamma/dx and dMW/dx
+        '''
+        # CEA Run for further Calculations and Prepares for delta Calculations
+        gammaCurr, MWCurr = self.thermochem(T, P)
 
-    def xdotSolve(self, t, x):
-        # Makes Variables easier to use
-        M = x[0]
-        V = x[1]
-        P0 = x[2]
-        P = x[3]
-        T01 = x[4]
-        T = x[5]
-        rho = x[6]
+        # Grabs data and ensures value is largest seen so far
+        if self.tCEAPrev == None:
+            # Sets initial Derivative
+            dMW_dx = 0.
+            dgamma_dx = 0.
 
-        # Determines if xdot array needs to be overwritten
-        if abs(M - self.MCrit) <= self.MCritRange:
-            xdot = self.xdotOverride()
-            return xdot
+            self.gammaCEAPrev = gammaCurr
+            self.MWCEAPrev = MWCurr
+            self.tCEAPrev = t
+        else:          
+            tDiff = t - self.tCEAPrev
 
-        # Gets current Diameter and Current Diameter derivative
-        D, dD_dx = self.getD(t)
-        
-        # Solves for friction factor
-        f = self.getf(rho, V, D)
+            # Prevents divide by 0 error
+            if tDiff == 0.0:
+                dgamma_dx = 0.
+                dMW_dx = 0.0
+            else:
+                dgamma_dx = (gammaCurr - self.gammaCEAPrev) / tDiff
+                dMW_dx = (MWCurr - self.MWCEAPrev) / tDiff
 
-        # Area Calculations
-        area = (1 / 4) * np.pi * np.power(D, 2)
-        dA_dx = 2 * area / D * dD_dx
+                print(f'Current Gamma: {gammaCurr}')
+                print(f'Previous Gamma: {self.gammaCEAPrev}')
+                print(f'Difference in gamma: {gammaCurr - self.gammaCEAPrev}')
+                print(f'Current X: {t}')
+                print()
 
-        # Stagnation Temperature
-        dT0_dx = T01 * self.q / self.Cp
+                self.gammaCEAPrev = gammaCurr
+                self.MWCEAPrev = MWCurr
+                self.tCEAPrev = t
 
-        # Mach Number (this will drive the rest of the derivations)
-        # Done
-        num1Area = -M * (1 + (self.gamma - 1) / 2 * np.power(M, 2))
-        den1Area = area * (1 - np.power(M, 2))
-        num1 = 4 * f * self.gamma * np.power(M, 3) * (1 + ((self.gamma - 1) / 2) * np.power(M, 2))
-        den1 = 2 * D * (1 - np.power(M, 2))
-        dM_dx = dA_dx * num1Area / den1Area + num1 / den1
-        # xdot1 = num1 / den1
-
-        # Velocity
-        # Done
-        num2 = dM_dx / M
-        den2 = 1 + (self.gamma - 1) / 2 * np.power(M, 2)
-        dV_dx =  V * num2 / den2
-
-        # Stagnation Pressure
-        # Done
-        part31 = - self.gamma * np.power(M, 2) * 4 * f / (2 * D)
-        part32 = - self.gamma * np.power(M, 2) * dT0_dx / (2 * T01)
-        dP0_dx = P0 * (part31 + part32)
-        # xdot3 = 0
-
-        # Static Pressure
-        # Done
-        num4 = -self.gamma * M * dM_dx
-        den4 = 1 + (self.gamma - 1) / 2 * np.power(M, 2)
-        dP_dx = P * (dP0_dx / P0 + num4 / den4)
-
-        # Temperature
-        # Done
-        num6 = - (self.gamma - 1) * M * dM_dx
-        den6 = 1 + (self.gamma - 1) / 2 * np.power(M, 2)
-        dT_dx = T * num6 / den6
-
-        # Density
-        # Done for now
-        C7 = 2 / (1 - np.power(M, 2))
-        part71 = (np.power(M, 2) / 2) * (dA_dx / area) - (4 * f * self.gamma * np.power(M, 2)) / (4 * D) - (dT0_dx / (2 * T))
-        drho_dx = 0
-
-        self.dM_dx = dM_dx
-        self.dV_dx = dV_dx
-        self.dP0_dx = dP0_dx
-        self.dP_dx = dP_dx
-        self.dT0_dx = dT0_dx
-        self.dT_dx = dT_dx
-        self.drho_dx = drho_dx
-
-        xdot = np.hstack((dM_dx, dV_dx, dP0_dx, dP_dx, dT0_dx, dT_dx, drho_dx))
-        return xdot    
+        return dgamma_dx, dMW_dx, gammaCurr
     
     def setICBeta(self, M1, vel, P1, T1, rho1, visc, epsilon):
         # TODO: Update so that we have a changing viscosity
@@ -541,7 +540,6 @@ class GeneralFlow:
         # TODO: Add Support for Entropy and Impulse
         # Makes Variables easier to use
         M2 = x[0]
-        # print(M2)
         M = np.sqrt(M2)
         V = x[1]
         a = x[2]
@@ -554,8 +552,11 @@ class GeneralFlow:
             M = 1.005
             M2 = M**2
 
-        # TODO: Add support for finding current gamma
-        gamma = self.gamma
+            
+        # Grabs Derivative for gamma and MW and current Values
+        if self.runCEA == True:
+            dgamma_dx, dMW_dx, gamma = self.findThermoDervs(T, P, t)
+        print(f'Current Gamma: {gamma}')
 
         # Grabs Influence Coefficients
         dMInf = self.findInfCoeffMach(gamma, M)
@@ -692,7 +693,7 @@ class GeneralFlow:
                   t_eval=self.xspan, 
                   rtol=1e-10,
                   atol=1e-10,
-                  max_step=0.001)
+                  max_step=self.maxStep)
         
         if len(self.results.y) == 0:
             raise ValueError('Convergence Failed')
@@ -716,42 +717,6 @@ class GeneralFlow:
                    'reason': self.reason}
         
         self.chokepoint = False
-        
-        self.results = pd.DataFrame(dictOut)
-        return self.results
-
-
-    def run(self):
-        '''
-        Runs Solver on ititial conditions for engine
-        '''
-        self.results = spint.solve_ivp(fun=self.xdotSolve, 
-                  t_span=[self.xStart, self.xEnd], 
-                  y0=self.IC,
-                  method='RK45', 
-                  t_eval=self.xspan, 
-                  rtol=1e-10,
-                  atol=1e-10)
-        
-        if len(self.results.y) == 0:
-            raise ValueError('Convergence Failed')
-        
-        xarr = self.results.t
-        Mach = self.results.y[0]
-        Vel = self.results.y[1]
-        P0 = self.results.y[2]
-        P = self.results.y[3]
-        T0 = self.results.y[4]
-        T = self.results.y[5]
-        rho = self.results.y[6]
-        dictOut = {'x': xarr,
-                   'Mach': Mach,
-                   'Vel': Vel,
-                   'P0': P0,
-                   'P': P,
-                   'T0': T0,
-                   'T': T,
-                   'rho': rho}
         
         self.results = pd.DataFrame(dictOut)
         return self.results
